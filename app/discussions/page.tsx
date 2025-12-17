@@ -1,11 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { FormEvent, useState } from "react"
 import Sidebar from "@/components/sidebar"
 import Header from "@/components/header"
 import { Search, Plus, MessageCircle } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
-const discussions = [
+const initialDiscussions = [
   { id: 1, title: "3D Place solution", author: "Shams Tabrez", time: "7h ago", replier: "Nahin", comments: 9 },
   {
     id: 2,
@@ -69,6 +78,47 @@ const tags = ["Machine Learning", "IoT", "UI/UX", "algorithm", "Biology", "more"
 
 export default function DiscussionsPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [discussions, setDiscussions] = useState(initialDiscussions)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [newTitle, setNewTitle] = useState("")
+  const [newTag, setNewTag] = useState("")
+  const [newDetails, setNewDetails] = useState("")
+  const [formError, setFormError] = useState<string | null>(null)
+
+  const filteredDiscussions = discussions.filter((disc) => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      disc.title.toLowerCase().includes(q) ||
+      disc.author.toLowerCase().includes(q) ||
+      disc.replier.toLowerCase().includes(q)
+    )
+  })
+
+  const handleCreateDiscussion = (e: FormEvent) => {
+    e.preventDefault()
+
+    if (!newTitle.trim() || !newDetails.trim()) {
+      setFormError("Please provide a title and details for your discussion.")
+      return
+    }
+
+    const newDiscussion = {
+      id: discussions.length ? discussions[discussions.length - 1].id + 1 : 1,
+      title: newTitle.trim(),
+      author: "You",
+      time: "just now",
+      replier: "–",
+      comments: 0,
+    }
+
+    setDiscussions([newDiscussion, ...discussions])
+    setNewTitle("")
+    setNewTag("")
+    setNewDetails("")
+    setFormError(null)
+    setIsCreateOpen(false)
+  }
 
   return (
     <div className="flex min-h-screen bg-[#f8f9fa]">
@@ -95,9 +145,82 @@ export default function DiscussionsPage() {
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
             </div>
-            <button className="btn-primary flex items-center gap-2">
-              <Plus size={20} /> Ask New
-            </button>
+
+            {/* New Discussion dialog */}
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <button className="btn-primary flex items-center gap-2">
+                  <Plus size={20} /> Ask New
+                </button>
+              </DialogTrigger>
+              <DialogContent className="bg-white">
+                <DialogHeader>
+                  <DialogTitle>Start a new discussion</DialogTitle>
+                  <DialogDescription>
+                    Ask a clear question or share an idea to get better answers from the community.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateDiscussion} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      placeholder="e.g. How to get started with Machine Learning projects?"
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Topic / Tag</label>
+                      <input
+                        type="text"
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        placeholder="e.g. Machine Learning, IoT, UI/UX"
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Details <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={newDetails}
+                      onChange={(e) => setNewDetails(e.target.value)}
+                      placeholder="Describe your question or idea. Include what you have tried, screenshots, or links if needed."
+                      className="w-full min-h-[120px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                      required
+                    />
+                  </div>
+
+                  {formError && <p className="text-sm text-red-500">{formError}</p>}
+
+                  <DialogFooter className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsCreateOpen(false)}
+                      className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-md bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
+                    >
+                      Post discussion
+                    </button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* Tags */}
@@ -114,7 +237,7 @@ export default function DiscussionsPage() {
 
           {/* Discussions List */}
           <div className="space-y-4 animate-fadeInUp" style={{ animationDelay: "0.3s" }}>
-            {discussions.map((disc, i) => (
+            {filteredDiscussions.map((disc) => (
               <div
                 key={disc.id}
                 className="bg-white rounded-lg p-6 border border-gray-200 hover-lift cursor-pointer transition-all duration-300 hover:border-blue-300"
